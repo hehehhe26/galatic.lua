@@ -1,4 +1,4 @@
--- FastWare - Premium Edition (Ultimate UI + Money Attempts)
+-- FastWare - Premium Edition (FIXED CARCASS TP)
 local player = game.Players.LocalPlayer
 local workspace = game:GetService("Workspace")
 local userInputService = game:GetService("UserInputService")
@@ -17,7 +17,7 @@ gui.ResetOnSpawn = false
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.DisplayOrder = 999
 
--- Main container (sleek, modern)
+-- Main container
 local main = Instance.new("Frame")
 main.Size = UDim2.new(0, 420, 0, 550)
 main.Position = UDim2.new(0, 20, 0, 20)
@@ -27,7 +27,7 @@ main.Parent = gui
 main.Active = true
 main.Draggable = true
 
--- Shadow effect (depth)
+-- Shadow effect
 local shadow = Instance.new("ImageLabel")
 shadow.Size = UDim2.new(1, 30, 1, 30)
 shadow.Position = UDim2.new(0, -15, 0, -15)
@@ -45,7 +45,7 @@ local mainCorner = Instance.new("UICorner")
 mainCorner.CornerRadius = UDim.new(0, 16)
 mainCorner.Parent = main
 
--- Gradient overlay (depth)
+-- Gradient overlay
 local gradient = Instance.new("UIGradient")
 gradient.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 20, 30)),
@@ -54,7 +54,7 @@ gradient.Color = ColorSequence.new({
 gradient.Rotation = 90
 gradient.Parent = main
 
--- Accent glow (top)
+-- Accent glow
 local glow = Instance.new("Frame")
 glow.Size = UDim2.new(1, -40, 0, 3)
 glow.Position = UDim2.new(0, 20, 0, 0)
@@ -66,7 +66,7 @@ local glowCorner = Instance.new("UICorner")
 glowCorner.CornerRadius = UDim.new(0, 2)
 glowCorner.Parent = glow
 
--- Header section
+-- Header
 local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, 70)
 header.BackgroundTransparency = 1
@@ -104,7 +104,7 @@ version.TextSize = 12
 version.TextXAlignment = Enum.TextXAlignment.Left
 version.Parent = header
 
--- Status indicator (online dot)
+-- Status dot
 local statusDot = Instance.new("Frame")
 statusDot.Size = UDim2.new(0, 10, 0, 10)
 statusDot.Position = UDim2.new(1, -25, 0, 30)
@@ -116,7 +116,7 @@ local dotCorner = Instance.new("UICorner")
 dotCorner.CornerRadius = UDim.new(1, 0)
 dotCorner.Parent = statusDot
 
--- Tab bar (glass effect)
+-- Tab bar
 local tabBar = Instance.new("Frame")
 tabBar.Size = UDim2.new(1, -30, 0, 50)
 tabBar.Position = UDim2.new(0, 15, 0, 70)
@@ -184,7 +184,6 @@ end
 -- Tab switching
 for i, tab in ipairs(tabs) do
     tab.MouseButton1Click:Connect(function()
-        -- Animate indicator
         tabIndicator:TweenPosition(
             UDim2.new((i-1) * 0.2, (i-1) * 4, 1, -5),
             "Out",
@@ -193,19 +192,17 @@ for i, tab in ipairs(tabs) do
             true
         )
         
-        -- Update tab colors
         for j, t in ipairs(tabs) do
             t.TextColor3 = j == i and Color3.fromRGB(0, 200, 255) or Color3.fromRGB(150, 150, 150)
         end
         
-        -- Switch page
         for j, page in ipairs(pages) do
             page.Visible = (j == i)
         end
     end)
 end
 
--- Button creator (premium style)
+-- Button creator
 local function createButton(parent, text, yPos, color, icon, width)
     width = width or 1
     local btn = Instance.new("TextButton")
@@ -431,7 +428,7 @@ tpBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- ================ MONEY PAGE (MULTIPLE METHODS) ================
+-- ================ MONEY PAGE ================
 local moneyY = 5
 
 -- Money display
@@ -493,7 +490,6 @@ scanBtn.MouseButton1Click:Connect(function()
             if name:find("money") or name:find("cash") or name:find("wallet") or 
                name:find("purchase") or name:find("buy") or name:find("earn") then
                 found = found + 1
-                -- Try to fire it
                 pcall(function()
                     obj:FireServer(1000000)
                     obj:FireServer("add", 1000000)
@@ -544,13 +540,13 @@ duoBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- ================ FARM PAGE (FIXED POSITIONS) ================
+-- ================ FARM PAGE (FIXED CARCASS POSITION) ================
 local farmY = 5
 
--- Fixed farm positions (now directly on the interactable spots)
+-- Farm positions - CARCASS FIXED with your coordinates
 local farmSpots = {
-    {name = "CARCASS", pos = Vector3.new(-681.16, 4.5, -497.09)},
-    {name = "CHOP MEAT", pos = Vector3.new(-356.14, 4.2, -497.93)}, -- Fixed: now right at the meat
+    {name = "CARCASS", pos = Vector3.new(371, 3, 487)},  -- YOUR CORRECT POSITION
+    {name = "CHOP MEAT", pos = Vector3.new(-356.14, 4.2, -497.93)},
     {name = "SELL MEAT", pos = Vector3.new(-342.1, 4.5, -509.72)}
 }
 
@@ -669,5 +665,5 @@ player.CharacterAdded:Connect(function(newChar)
     statusText.Text = "⚡ SYSTEM READY"
 end)
 
-print("✅ FastWare Premium Loaded - UI v4")
+print("✅ FastWare Premium Loaded - Carcass TP Fixed")
 statusText.Text = "⚡ SYSTEM READY"
