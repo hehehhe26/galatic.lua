@@ -1,4 +1,4 @@
--- FastWare - Premium Edition (with AUTO FARM + 3.12s E Hold)
+-- FastWare - Premium Edition (with Nitty ESP + Dupe Research Tool)
 local player = game.Players.LocalPlayer
 local workspace = game:GetService("Workspace")
 local userInputService = game:GetService("UserInputService")
@@ -20,7 +20,7 @@ gui.DisplayOrder = 999
 
 -- Main container
 local main = Instance.new("Frame")
-main.Size = UDim2.new(0, 420, 0, 600)
+main.Size = UDim2.new(0, 420, 0, 650)
 main.Position = UDim2.new(0, 20, 0, 20)
 main.BackgroundColor3 = Color3.fromRGB(8, 8, 12)
 main.BorderSizePixel = 0
@@ -97,7 +97,7 @@ title.Parent = header
 local version = Instance.new("TextLabel")
 version.Size = UDim2.new(0, 200, 0, 18)
 version.Position = UDim2.new(0, 70, 0, 42)
-version.Text = "PREMIUM EDITION v5"
+version.Text = "PREMIUM EDITION v6"
 version.TextColor3 = Color3.fromRGB(150, 150, 180)
 version.BackgroundTransparency = 1
 version.Font = Enum.Font.Gotham
@@ -143,18 +143,18 @@ indicatorCorner.Parent = tabIndicator
 
 -- Tab buttons
 local tabs = {}
-local tabNames = {"COMBAT", "ESP", "MONEY", "FARM", "PRIVACY"}
-local tabIcons = {"⚔️", "👁️", "💰", "🌾", "🔒"}
+local tabNames = {"COMBAT", "ESP", "MONEY", "FARM", "DUPE", "PRIVACY"}
+local tabIcons = {"⚔️", "👁️", "💰", "🌾", "📦", "🔒"}
 
-for i = 1, 5 do
+for i = 1, 6 do
     local tab = Instance.new("TextButton")
-    tab.Size = UDim2.new(0.2, -4, 1, -10)
-    tab.Position = UDim2.new((i-1) * 0.2, (i-1) * 4, 0, 5)
+    tab.Size = UDim2.new(0.166, -3, 1, -10)
+    tab.Position = UDim2.new((i-1) * 0.166, (i-1) * 3, 0, 5)
     tab.Text = tabIcons[i] .. "  " .. tabNames[i]
     tab.BackgroundTransparency = 1
     tab.TextColor3 = i == 1 and Color3.fromRGB(0, 200, 255) or Color3.fromRGB(150, 150, 150)
     tab.Font = Enum.Font.GothamBold
-    tab.TextSize = 12
+    tab.TextSize = 11
     tab.Parent = tabBar
     tabs[i] = tab
 end
@@ -168,7 +168,7 @@ content.Parent = main
 
 -- Pages
 local pages = {}
-for i = 1, 5 do
+for i = 1, 6 do
     local page = Instance.new("ScrollingFrame")
     page.Size = UDim2.new(1, 0, 1, 0)
     page.BackgroundTransparency = 1
@@ -186,7 +186,7 @@ end
 for i, tab in ipairs(tabs) do
     tab.MouseButton1Click:Connect(function()
         tabIndicator:TweenPosition(
-            UDim2.new((i-1) * 0.2, (i-1) * 4, 1, -5),
+            UDim2.new((i-1) * 0.166, (i-1) * 3, 1, -5),
             "Out",
             "Quad",
             0.2,
@@ -315,12 +315,121 @@ speedBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- ================ ESP PAGE ================
--- Find this section in the ESP PAGE (around line 250-300)
+-- ================ ESP PAGE (IMPROVED NITTY ESP) ================
+local espY = 5
+local nittyEspBtn = createButton(pages[2], "NITTY ESP", espY, Color3.fromRGB(40, 40, 55), "👁️")
+espY = espY + 50
+local refreshBtn = createButton(pages[2], "REFRESH NITTIES", espY, Color3.fromRGB(40, 40, 55), "🔄")
+espY = espY + 50
+local tpBtn = createButton(pages[2], "TP TO NEAREST NITTY", espY, Color3.fromRGB(0, 100, 200), "📍")
+espY = espY + 50
+local espRange = createButton(pages[2], "ESP RANGE: 100", espY, Color3.fromRGB(40, 40, 55), "📏")
 
--- ================ FIXED NITTY TP (ANTI-TP BYPASS) ================
-tpBtn.MouseButton1Click:Connect(function()
+-- ESP state
+local espActive = false
+local espHighlights = {}
+local currentRange = 100
+
+-- Find Nitties with range filter
+local function findNitties(range)
+    range = range or currentRange
+    local nitties = {}
+    local char = player.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return nitties end
+    
+    local myPos = char.HumanoidRootPart.Position
+    
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj:FindFirstChild("Humanoid") then
+            local name = obj.Name:lower()
+            if name:find("nitty") then
+                local isPlayer = false
+                for _, plr in pairs(players:GetPlayers()) do
+                    if plr.Character == obj then
+                        isPlayer = true
+                        break
+                    end
+                end
+                if not isPlayer and obj:FindFirstChild("HumanoidRootPart") then
+                    local dist = (obj.HumanoidRootPart.Position - myPos).Magnitude
+                    if dist <= range then
+                        table.insert(nitties, obj)
+                    end
+                end
+            end
+        end
+    end
+    return nitties
+end
+
+local function updateNittyESP()
+    for _, highlight in pairs(espHighlights) do
+        pcall(function() highlight:Destroy() end)
+    end
+    espHighlights = {}
+    
+    if not espActive then return end
+    
     local nitties = findNitties()
+    for _, nitty in pairs(nitties) do
+        if nitty:FindFirstChild("HumanoidRootPart") then
+            local highlight = Instance.new("Highlight")
+            highlight.FillColor = Color3.fromRGB(255, 0, 0)
+            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+            highlight.FillTransparency = 0.3
+            highlight.Adornee = nitty
+            highlight.Parent = gui
+            table.insert(espHighlights, highlight)
+        end
+    end
+    
+    statusText.Text = "👁️ FOUND " .. #nitties .. " NITTIES WITHIN " .. currentRange .. " studs"
+end
+
+-- Range toggle
+espRange.MouseButton1Click:Connect(function()
+    if currentRange == 100 then
+        currentRange = 200
+    elseif currentRange == 200 then
+        currentRange = 500
+    else
+        currentRange = 100
+    end
+    espRange.Text = "📏 ESP RANGE: " .. currentRange
+    if espActive then
+        updateNittyESP()
+    end
+end)
+
+nittyEspBtn.MouseButton1Click:Connect(function()
+    espActive = not espActive
+    if espActive then
+        nittyEspBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+        nittyEspBtn.Text = "👁️  NITTY ESP [ON]"
+        updateNittyESP()
+    else
+        nittyEspBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+        nittyEspBtn.Text = "👁️  NITTY ESP [OFF]"
+        for _, highlight in pairs(espHighlights) do
+            pcall(function() highlight:Destroy() end)
+        end
+        espHighlights = {}
+        statusText.Text = "👁️ ESP OFF"
+    end
+end)
+
+refreshBtn.MouseButton1Click:Connect(function()
+    if espActive then
+        updateNittyESP()
+    else
+        local count = #findNitties(1000) -- Scan full map for count
+        statusText.Text = "👁️ " .. count .. " NITTIES IN GAME"
+    end
+end)
+
+-- FIXED NITTY TP (Anti-TP Bypass)
+tpBtn.MouseButton1Click:Connect(function()
+    local nitties = findNitties(1000) -- Scan full map
     if #nitties == 0 then
         statusText.Text = "❌ NO NITTIES FOUND"
         return
@@ -350,34 +459,32 @@ tpBtn.MouseButton1Click:Connect(function()
         
         statusText.Text = "📍 MOVING TO " .. nearest.Name .. " (" .. math.floor(distance) .. " studs)"
         
-        -- If distance is small, just teleport (might be safe)
+        -- Anti-TP bypass: smooth movement for long distances
         if distance < 30 then
             char.HumanoidRootPart.CFrame = CFrame.new(targetPos)
             statusText.Text = "📍 TP TO " .. nearest.Name
         else
-            -- For longer distances, use smooth movement to avoid anti-cheat
             local originalSpeed = humanoid.WalkSpeed
-            humanoid.WalkSpeed = 50 -- Run fast but don't teleport
+            humanoid.WalkSpeed = 50
             
-            -- Calculate direction and move step by step
             local direction = (targetPos - myPos).Unit
-            local steps = math.ceil(distance / 10) -- Move in chunks
+            local steps = math.ceil(distance / 10)
             
             for i = 1, steps do
                 if not char or not char:FindFirstChild("HumanoidRootPart") then break end
                 local progress = i / steps
                 local currentPos = myPos:Lerp(targetPos, progress)
                 char.HumanoidRootPart.CFrame = CFrame.new(currentPos)
-                wait(0.05) -- Small delay between steps
+                wait(0.05)
             end
             
-            -- Final position
             char.HumanoidRootPart.CFrame = CFrame.new(targetPos)
             humanoid.WalkSpeed = originalSpeed
             statusText.Text = "📍 ARRIVED AT " .. nearest.Name
         end
     end
 end)
+
 -- ================ MONEY PAGE ================
 local moneyY = 5
 
@@ -490,10 +597,10 @@ duoBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- ================ FARM PAGE (with AUTO FARM) ================
+-- ================ FARM PAGE ================
 local farmY = 5
 
--- Farm positions (YOUR CORRECT COORDINATES)
+-- Farm positions
 local farmSpots = {
     {name = "CARCASS", pos = Vector3.new(-371, 5, -487)},
     {name = "CHOP MEAT", pos = Vector3.new(-356.14, 4.2, -497.93)},
@@ -518,19 +625,15 @@ for _, data in ipairs(farmBtns) do
     end)
 end
 
--- ================ AUTO FARM FEATURE ================
+-- Auto farm with anti-TP
 local autoFarmActive = false
 local autoFarmLoop = nil
 
--- Create Auto Farm button
 local autoFarmBtn = createButton(pages[4], "▶️ AUTO FARM (AFK)", farmY, Color3.fromRGB(0, 100, 200), "⚡")
 farmY = farmY + 50
 
--- Function to simulate holding E
 local function holdE()
     local held = false
-    
-    -- Method 1: Fire proximity prompts directly
     for _, obj in pairs(workspace:GetDescendants()) do
         if obj:IsA("ProximityPrompt") then
             local part = obj.Parent
@@ -543,8 +646,6 @@ local function holdE()
             end
         end
     end
-    
-    -- Method 2: Simulate key press as backup
     if not held then
         pcall(function()
             virtualInput:SendKeyEvent(true, Enum.KeyCode.E, false, game)
@@ -552,25 +653,18 @@ local function holdE()
             virtualInput:SendKeyEvent(false, Enum.KeyCode.E, false, game)
         end)
     end
-    
     return held
 end
 
 autoFarmBtn.MouseButton1Click:Connect(function()
     autoFarmActive = not autoFarmActive
-    
     if autoFarmActive then
-        autoFarmBtn.Text = "⏸️ AUTO FARM ACTIVE [3.12s HOLD]"
+        autoFarmBtn.Text = "⏸️ AUTO FARM ACTIVE"
         autoFarmBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-        statusText.Text = "⚡ AUTO FARM STARTED - HOLDING E FOR 3.12s"
+        statusText.Text = "⚡ AUTO FARM STARTED"
         
-        -- Stop any existing loop
-        if autoFarmLoop then
-            autoFarmLoop:Disconnect()
-            autoFarmLoop = nil
-        end
+        if autoFarmLoop then autoFarmLoop:Disconnect() end
         
-        -- Start auto farm loop
         local currentSpot = 1
         autoFarmLoop = runService.Heartbeat:Connect(function()
             if not autoFarmActive then
@@ -581,40 +675,32 @@ autoFarmBtn.MouseButton1Click:Connect(function()
                 return
             end
             
-            -- Get current spot
             local spot = farmSpots[currentSpot]
             local char = player.Character
             
             if char and char:FindFirstChild("HumanoidRootPart") then
-                -- Teleport to spot
                 char.HumanoidRootPart.CFrame = CFrame.new(spot.pos)
-                statusText.Text = "📍 " .. spot.name .. " - HOLDING E (3.12s)"
+                statusText.Text = "📍 " .. spot.name
                 
-                -- Hold E for exactly 3.12 seconds
                 local startTime = tick()
                 while autoFarmActive and (tick() - startTime) < 3.12 do
                     holdE()
-                    wait(0.1) -- Fire E every 0.1 seconds during hold
+                    wait(0.1)
                 end
                 
-                -- Move to next spot
                 currentSpot = currentSpot + 1
                 if currentSpot > #farmSpots then
                     currentSpot = 1
                 end
-                
-                -- Small delay before next teleport
                 wait(0.2)
             else
                 wait(1)
             end
         end)
-        
     else
         autoFarmBtn.Text = "▶️ AUTO FARM (AFK)"
         autoFarmBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
         statusText.Text = "⚡ AUTO FARM STOPPED"
-        
         if autoFarmLoop then
             autoFarmLoop:Disconnect()
             autoFarmLoop = nil
@@ -622,11 +708,167 @@ autoFarmBtn.MouseButton1Click:Connect(function()
     end
 end)
 
+-- ================ DUPE RESEARCH PAGE ================
+local dupeY = 5
+
+-- Inventory display
+local backpack = player:FindFirstChild("Backpack")
+if backpack then
+    local inventoryLabel = Instance.new("TextLabel")
+    inventoryLabel.Size = UDim2.new(0.9, 0, 0, 40)
+    inventoryLabel.Position = UDim2.new(0.05, 0, 0, dupeY)
+    inventoryLabel.Text = "📦 INVENTORY ITEMS: " .. #backpack:GetChildren()
+    inventoryLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+    inventoryLabel.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    inventoryLabel.Font = Enum.Font.GothamBold
+    inventoryLabel.TextSize = 14
+    inventoryLabel.Parent = pages[5]
+    
+    local invCorner = Instance.new("UICorner")
+    invCorner.CornerRadius = UDim.new(0, 10)
+    invCorner.Parent = inventoryLabel
+    
+    dupeY = dupeY + 50
+end
+
+-- Dupe attempt buttons
+local desyncBtn = createButton(pages[5], "🔄 ATTEMPT DESYNC DUPE", dupeY, Color3.fromRGB(100, 0, 100), "⚠️")
+dupeY = dupeY + 50
+local tradeBtn = createButton(pages[5], "🔄 ATTEMPT TRADE DUPE", dupeY, Color3.fromRGB(100, 0, 100), "⚠️")
+dupeY = dupeY + 50
+local dropBtn = createButton(pages[5], "🔄 ATTEMPT DROP DUPE", dupeY, Color3.fromRGB(100, 0, 100), "⚠️")
+dupeY = dupeY + 50
+local scanDupesBtn = createButton(pages[5], "🔍 SCAN FOR DUPE REMOTES", dupeY, Color3.fromRGB(0, 100, 200), "🔍")
+
+-- Dupe log
+local dupeLog = Instance.new("ScrollingFrame")
+dupeLog.Size = UDim2.new(0.9, 0, 0, 150)
+dupeLog.Position = UDim2.new(0.05, 0, 0, dupeY + 10)
+dupeLog.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+dupeLog.Parent = pages[5]
+
+local logLayout = Instance.new("UIListLayout")
+logLayout.Parent = dupeLog
+
+local function addToLog(msg, color)
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -5, 0, 20)
+    label.Text = msg
+    label.TextColor3 = color or Color3.fromRGB(255, 255, 255)
+    label.BackgroundTransparency = 1
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.TextSize = 12
+    label.Parent = dupeLog
+end
+
+-- Dupe remote scanner
+scanDupesBtn.MouseButton1Click:Connect(function()
+    addToLog("🔍 Scanning for dupe-related remotes...", Color3.fromRGB(255, 255, 0))
+    local dupeKeywords = {"drop", "pickup", "trade", "give", "transfer", "inventory", "item"}
+    local found = 0
+    
+    for _, obj in pairs(replicatedStorage:GetDescendants()) do
+        if obj:IsA("RemoteEvent") then
+            local name = obj.Name:lower()
+            for _, keyword in ipairs(dupeKeywords) do
+                if name:find(keyword) then
+                    found = found + 1
+                    addToLog("📡 Found: " .. obj.Parent.Name .. "." .. obj.Name, Color3.fromRGB(0, 255, 0))
+                    break
+                end
+            end
+        end
+    end
+    
+    addToLog("✅ Found " .. found .. " potential dupe remotes", Color3.fromRGB(0, 255, 0))
+end)
+
+-- Desync dupe attempt
+desyncBtn.MouseButton1Click:Connect(function()
+    addToLog("⚠️ Attempting desync dupe...", Color3.fromRGB(255, 255, 0))
+    local backpack = player:FindFirstChild("Backpack")
+    if not backpack then
+        addToLog("❌ No backpack found", Color3.fromRGB(255, 0, 0))
+        return
+    end
+    
+    local items = {}
+    for _, item in pairs(backpack:GetChildren()) do
+        if item:IsA("Tool") then
+            table.insert(items, item)
+        end
+    end
+    
+    if #items == 0 then
+        addToLog("❌ No items in inventory", Color3.fromRGB(255, 0, 0))
+        return
+    end
+    
+    local testItem = items[1]
+    addToLog("📦 Testing with: " .. testItem.Name)
+    
+    -- Attempt rapid drop/pickup
+    for i = 1, 50 do
+        pcall(function()
+            testItem.Parent = workspace
+            wait(0.01)
+            testItem.Parent = backpack
+        end)
+    end
+    
+    addToLog("✅ Desync attempt complete - check if you have two!", Color3.fromRGB(0, 255, 0))
+end)
+
+-- Trade dupe attempt
+tradeBtn.MouseButton1Click:Connect(function()
+    addToLog("⚠️ Trade dupe requires a second player!", Color3.fromRGB(255, 255, 0))
+    addToLog("Find a friend and both run this script", Color3.fromRGB(255, 255, 0))
+end)
+
+-- Drop dupe attempt
+dropBtn.MouseButton1Click:Connect(function()
+    addToLog("⚠️ Attempting drop dupe...", Color3.fromRGB(255, 255, 0))
+    local backpack = player:FindFirstChild("Backpack")
+    if not backpack then
+        addToLog("❌ No backpack found", Color3.fromRGB(255, 0, 0))
+        return
+    end
+    
+    local items = {}
+    for _, item in pairs(backpack:GetChildren()) do
+        if item:IsA("Tool") then
+            table.insert(items, item)
+        end
+    end
+    
+    if #items == 0 then
+        addToLog("❌ No items in inventory", Color3.fromRGB(255, 0, 0))
+        return
+    end
+    
+    local testItem = items[1]
+    addToLog("📦 Testing with: " .. testItem.Name)
+    
+    -- Look for drop remote
+    for _, obj in pairs(replicatedStorage:GetDescendants()) do
+        if obj:IsA("RemoteEvent") and obj.Name:lower():find("drop") then
+            addToLog("📡 Found drop remote: " .. obj.Name)
+            pcall(function()
+                obj:FireServer(testItem)
+                wait(0.01)
+                obj:FireServer(testItem)
+            end)
+        end
+    end
+    
+    addToLog("✅ Drop dupe attempt complete", Color3.fromRGB(0, 255, 0))
+end)
+
 -- ================ PRIVACY PAGE ================
 local privacyY = 5
-local nameBtn = createButton(pages[5], "HIDE USERNAME", privacyY, Color3.fromRGB(40, 40, 55), "👤")
+local nameBtn = createButton(pages[6], "HIDE USERNAME", privacyY, Color3.fromRGB(40, 40, 55), "👤")
 privacyY = privacyY + 50
-local chatBtn = createButton(pages[5], "BLOCK CHAT", privacyY, Color3.fromRGB(40, 40, 55), "💬")
+local chatBtn = createButton(pages[6], "BLOCK CHAT", privacyY, Color3.fromRGB(40, 40, 55), "💬")
 
 -- Privacy state
 local nameHidden = false
@@ -720,5 +962,5 @@ player.CharacterAdded:Connect(function(newChar)
     statusText.Text = "⚡ SYSTEM READY"
 end)
 
-print("✅ FastWare Premium Loaded - Auto Farm with 3.12s E Hold")
+print("✅ FastWare Premium Loaded - Nitty ESP + Dupe Research Tool")
 statusText.Text = "⚡ SYSTEM READY"
