@@ -316,89 +316,9 @@ speedBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ================ ESP PAGE ================
-local espY = 5
-local nittyEspBtn = createButton(pages[2], "NITTY ESP", espY, Color3.fromRGB(40, 40, 55), "👁️")
-espY = espY + 50
-local refreshBtn = createButton(pages[2], "REFRESH NITTIES", espY, Color3.fromRGB(40, 40, 55), "🔄")
-espY = espY + 50
-local tpBtn = createButton(pages[2], "TP TO NEAREST NITTY", espY, Color3.fromRGB(0, 100, 200), "📍")
+-- Find this section in the ESP PAGE (around line 250-300)
 
--- ESP state
-local espActive = false
-local espHighlights = {}
-
-local function findNitties()
-    local nitties = {}
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("Model") and obj:FindFirstChild("Humanoid") then
-            local name = obj.Name:lower()
-            if name:find("nitty") then
-                local isPlayer = false
-                for _, plr in pairs(players:GetPlayers()) do
-                    if plr.Character == obj then
-                        isPlayer = true
-                        break
-                    end
-                end
-                if not isPlayer then
-                    table.insert(nitties, obj)
-                end
-            end
-        end
-    end
-    return nitties
-end
-
-local function updateNittyESP()
-    for _, highlight in pairs(espHighlights) do
-        pcall(function() highlight:Destroy() end)
-    end
-    espHighlights = {}
-    
-    if not espActive then return end
-    
-    local nitties = findNitties()
-    for _, nitty in pairs(nitties) do
-        if nitty:FindFirstChild("HumanoidRootPart") then
-            local highlight = Instance.new("Highlight")
-            highlight.FillColor = Color3.fromRGB(255, 0, 0)
-            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-            highlight.FillTransparency = 0.3
-            highlight.Adornee = nitty
-            highlight.Parent = gui
-            table.insert(espHighlights, highlight)
-        end
-    end
-    
-    statusText.Text = "👁️ FOUND " .. #nitties .. " NITTIES"
-end
-
-nittyEspBtn.MouseButton1Click:Connect(function()
-    espActive = not espActive
-    if espActive then
-        nittyEspBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-        nittyEspBtn.Text = "👁️  NITTY ESP [ON]"
-        updateNittyESP()
-    else
-        nittyEspBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
-        nittyEspBtn.Text = "👁️  NITTY ESP [OFF]"
-        for _, highlight in pairs(espHighlights) do
-            pcall(function() highlight:Destroy() end)
-        end
-        espHighlights = {}
-        statusText.Text = "👁️ ESP OFF"
-    end
-end)
-
-refreshBtn.MouseButton1Click:Connect(function()
-    if espActive then
-        updateNittyESP()
-    else
-        local count = #findNitties()
-        statusText.Text = "👁️ " .. count .. " NITTIES IN GAME"
-    end
-end)
-
+-- ================ FIXED NITTY TP (ANTI-TP BYPASS) ================
 tpBtn.MouseButton1Click:Connect(function()
     local nitties = findNitties()
     if #nitties == 0 then
@@ -412,6 +332,7 @@ tpBtn.MouseButton1Click:Connect(function()
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
     
     local myPos = char.HumanoidRootPart.Position
+    local humanoid = char:FindFirstChild("Humanoid")
     
     for _, nitty in pairs(nitties) do
         if nitty:FindFirstChild("HumanoidRootPart") then
@@ -423,12 +344,40 @@ tpBtn.MouseButton1Click:Connect(function()
         end
     end
     
-    if nearest then
-        char.HumanoidRootPart.CFrame = nearest.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
-        statusText.Text = "📍 TP TO " .. nearest.Name
+    if nearest and nearest:FindFirstChild("HumanoidRootPart") then
+        local targetPos = nearest.HumanoidRootPart.Position + Vector3.new(0, 3, 0)
+        local distance = (targetPos - myPos).Magnitude
+        
+        statusText.Text = "📍 MOVING TO " .. nearest.Name .. " (" .. math.floor(distance) .. " studs)"
+        
+        -- If distance is small, just teleport (might be safe)
+        if distance < 30 then
+            char.HumanoidRootPart.CFrame = CFrame.new(targetPos)
+            statusText.Text = "📍 TP TO " .. nearest.Name
+        else
+            -- For longer distances, use smooth movement to avoid anti-cheat
+            local originalSpeed = humanoid.WalkSpeed
+            humanoid.WalkSpeed = 50 -- Run fast but don't teleport
+            
+            -- Calculate direction and move step by step
+            local direction = (targetPos - myPos).Unit
+            local steps = math.ceil(distance / 10) -- Move in chunks
+            
+            for i = 1, steps do
+                if not char or not char:FindFirstChild("HumanoidRootPart") then break end
+                local progress = i / steps
+                local currentPos = myPos:Lerp(targetPos, progress)
+                char.HumanoidRootPart.CFrame = CFrame.new(currentPos)
+                wait(0.05) -- Small delay between steps
+            end
+            
+            -- Final position
+            char.HumanoidRootPart.CFrame = CFrame.new(targetPos)
+            humanoid.WalkSpeed = originalSpeed
+            statusText.Text = "📍 ARRIVED AT " .. nearest.Name
+        end
     end
 end)
-
 -- ================ MONEY PAGE ================
 local moneyY = 5
 
