@@ -1,18 +1,18 @@
--- FastWare Main Script
--- Place this in a LocalScript inside a ScreenGui in StarterGui
+-- FastWare Executor Version
+-- Copy and paste this entire script into your executor
 
 local FastWare = {}
 
 -- UI Setup
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "FastWareGUI"
-screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+screenGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
 mainFrame.Size = UDim2.new(0, 400, 0, 500)
 mainFrame.Position = UDim2.new(0.5, -200, 0.5, -250)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30,課40)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 mainFrame.BackgroundTransparency = 0.2
 mainFrame.BorderSizePixel = 0
 mainFrame.Parent = screenGui
@@ -28,6 +28,22 @@ title.TextColor3 = Color3.fromRGB(0, 255, 150)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 28
 title.Parent = mainFrame
+
+-- Close button
+local closeBtn = Instance.new("TextButton")
+closeBtn.Name = "CloseBtn"
+closeBtn.Text = "X"
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -35, 0, 10)
+closeBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 18
+closeBtn.Parent = mainFrame
+
+closeBtn.MouseButton1Click:Connect(function()
+    screenGui:Destroy()
+end)
 
 -- Category buttons container
 local categoryFrame = Instance.new("Frame")
@@ -73,11 +89,106 @@ for i, catName in ipairs(categories) do
     end)
 end
 
+-- Infinite Ammo Function
+FastWare.InfiniteAmmo = function(enabled)
+    if enabled then
+        -- Hook into the game's ammo system
+        local mt = getrawmetatable(game)
+        local oldIndex = mt.__index
+        
+        setreadonly(mt, false)
+        
+        mt.__index = newcclosure(function(self, key)
+            if key == "Value" and (self.Name == "Ammo" or self.Name == "Clip" or self.Name == "AmmoCount") then
+                return 999999
+            end
+            return oldIndex(self, key)
+        end)
+        
+        setreadonly(mt, true)
+        
+        -- Also continuously update ammo values
+        spawn(function()
+            while enabled do
+                local character = game.Players.LocalPlayer.Character
+                if character then
+                    for _, tool in pairs(character:GetChildren()) do
+                        if tool:IsA("Tool") then
+                            for _, v in pairs(tool:GetDescendants()) do
+                                if v:IsA("IntValue") and (v.Name == "Ammo" or v.Name == "Clip" or v.Name == "AmmoCount") then
+                                    v.Value = 999999
+                                end
+                            end
+                        end
+                    end
+                end
+                wait(0.1)
+            end
+        end)
+    end
+end
+
+-- Money Giver Function
+FastWare.GiveMoney = function()
+    local player = game.Players.LocalPlayer
+    
+    -- Try different money storage locations
+    local success = false
+    
+    -- Method 1: Player stats
+    for _, name in pairs({"Money", "Cash", "Dollars", "Currency", "Points", "Coins"}) do
+        local moneyValue = player:FindFirstChild(name)
+        if moneyValue and moneyValue:IsA("IntValue") then
+            moneyValue.Value = moneyValue.Value + 5000
+            success = true
+            break
+        end
+        
+        -- Check leaderstats
+        local leaderstats = player:FindFirstChild("leaderstats")
+        if leaderstats then
+            moneyValue = leaderstats:FindFirstChild(name)
+            if moneyValue and moneyValue:IsA("IntValue") then
+                moneyValue.Value = moneyValue.Value + 5000
+                success = true
+                break
+            end
+        end
+        
+        -- Check Data folder
+        local dataFolder = player:FindFirstChild("Data")
+        if dataFolder then
+            moneyValue = dataFolder:FindFirstChild(name)
+            if moneyValue and moneyValue:IsA("IntValue") then
+                moneyValue.Value = moneyValue.Value + 5000
+                success = true
+                break
+            end
+        end
+    end
+    
+    -- Method 2: Remote events (if the game uses them)
+    if not success then
+        local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
+        if remotes then
+            for _, remote in pairs(remotes:GetChildren()) do
+                if remote:IsA("RemoteEvent") and (remote.Name:lower():find("money") or remote.Name:lower():find("cash")) then
+                    remote:FireServer(5000)
+                    success = true
+                    break
+                end
+            end
+        end
+    end
+    
+    return success
+end
+
 -- Category Contents
 FastWare.CategoryContents = {
     Weapons = function()
         -- Clear previous content
-        for _, v in ipairs(contentFrame:GetChildren()) do
+        for _, v in pairs(contentFrame:GetChildren()) do
             v:Destroy()
         end
         
@@ -123,41 +234,18 @@ FastWare.CategoryContents = {
             if activated then
                 toggleBtn.Text = "ACTIVATED"
                 toggleBtn.BackgroundColor3 = Color3.fromRGB(180, 80, 80)
-                
-                -- Infinite ammo logic
-                spawn(function()
-                    while activated do
-                        -- This tries to find your gun and set ammo to max
-                        local character = game.Players.LocalPlayer.Character
-                        if character then
-                            for _, tool in ipairs(character:GetChildren()) do
-                                if tool:IsA("Tool") then
-                                    -- Try common ammo properties
-                                    local ammo = tool:FindFirstChild("Ammo")
-                                    if ammo and ammo:IsA("IntValue") then
-                                        ammo.Value = 999999
-                                    end
-                                    
-                                    local clip = tool:FindFirstChild("Clip")
-                                    if clip and clip:IsA("IntValue") then
-                                        clip.Value = 999999
-                                    end
-                                end
-                            end
-                        end
-                        wait(0.5)
-                    end
-                end)
+                FastWare.InfiniteAmmo(true)
             else
                 toggleBtn.Text = "ACTIVATE"
                 toggleBtn.BackgroundColor3 = Color3.fromRGB(80, 180, 80)
+                FastWare.InfiniteAmmo(false)
             end
         end)
     end,
     
     Money = function()
         -- Clear previous content
-        for _, v in ipairs(contentFrame:GetChildren()) do
+        for _, v in pairs(contentFrame:GetChildren()) do
             v:Destroy()
         end
         
@@ -197,37 +285,34 @@ FastWare.CategoryContents = {
         moneyBtn.TextSize = 20
         moneyBtn.Parent = moneyFrame
         
+        -- Status label
+        local statusLabel = Instance.new("TextLabel")
+        statusLabel.Name = "StatusLabel"
+        statusLabel.Text = ""
+        statusLabel.Size = UDim2.new(1, 0, 0, 20)
+        statusLabel.Position = UDim2.new(0, 0, 0, 125)
+        statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+        statusLabel.Font = Enum.Font.Gotham
+        statusLabel.TextSize = 14
+        statusLabel.Parent = moneyFrame
+        
         -- Money giving logic
         moneyBtn.MouseButton1Click:Connect(function()
-            -- Try to find money system in the game
-            local player = game.Players.LocalPlayer
-            
-            -- Common money storage names
-            local moneyNames = {"Money", "Cash", "Dollars", "Currency", "Points"}
-            
-            for _, name in ipairs(moneyNames) do
-                local moneyValue = player:FindFirstChild(name)
-                if moneyValue and moneyValue:IsA("IntValue") then
-                    moneyValue.Value = moneyValue.Value + 5000
-                    break
-                end
+            local success = FastWare.GiveMoney()
+            if success then
+                statusLabel.Text = "Success! +$5,000"
+            else
+                statusLabel.Text = "Failed to find money system"
             end
             
-            -- If not found, try backpack
-            local backpack = player:WaitForChild("Backpack")
-            for _, item in ipairs(backpack:GetChildren()) do
-                if item.Name == "Money" or item.Name == "Cash" then
-                    if item:IsA("IntValue") then
-                        item.Value = item.Value + 5000
-                    end
-                end
-            end
+            wait(2)
+            statusLabel.Text = ""
         end)
     end,
     
     More = function()
         -- Clear previous content
-        for _, v in ipairs(contentFrame:GetChildren()) do
+        for _, v in pairs(contentFrame:GetChildren()) do
             v:Destroy()
         end
         
@@ -255,6 +340,25 @@ FastWare.CategoryContents = {
         desc.Font = Enum.Font.Gotham
         desc.TextSize = 16
         desc.Parent = moreFrame
+        
+        -- Add more features button example
+        local addFeatureBtn = Instance.new("TextButton")
+        addFeatureBtn.Text = "Add New Feature"
+        addFeatureBtn.Size = UDim2.new(0, 150, 0, 40)
+        addFeatureBtn.Position = UDim2.new(0.5, -75, 0.5, -20)
+        addFeatureBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 90)
+        addFeatureBtn.TextColor3 = Color3.fromRGB(220, 220, 255)
+        addFeatureBtn.Font = Enum.Font.Gotham
+        addFeatureBtn.TextSize = 16
+        addFeatureBtn.Parent = moreFrame
+        
+        addFeatureBtn.MouseButton1Click:Connect(function()
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "FastWare",
+                Text = "Add your features here!",
+                Duration = 3
+            })
+        end)
     end
 }
 
@@ -265,7 +369,7 @@ FastWare.ShowCategory = function(category)
     end
 end
 
--- Initialize
+-- Initialize with Weapons category
 FastWare.ShowCategory("Weapons")
 
 -- Make UI draggable
@@ -294,4 +398,12 @@ mainFrame.InputEnded:Connect(function(input)
     end
 end)
 
-return FastWare
+-- Send notification that FastWare loaded
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "FastWare",
+    Text = "Successfully loaded!",
+    Duration = 5,
+    Icon = "rbxassetid://4483345998"
+})
+
+print("[FastWare] Loaded successfully!")
