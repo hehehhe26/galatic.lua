@@ -545,7 +545,7 @@ local farmY = 5
 
 -- Farm positions - CARCASS FIXED with your coordinates
 local farmSpots = {
-    {name = "CARCASS", pos = Vector3.new(-371, -3, -487)},  -- YOUR CORRECT POSITION
+    {name = "CARCASS", pos = Vector3.new(-371, -5, -487)},  -- YOUR CORRECT POSITION
     {name = "CHOP MEAT", pos = Vector3.new(-356.14, 4.2, -497.93)},
     {name = "SELL MEAT", pos = Vector3.new(-342.1, 4.5, -509.72)}
 }
