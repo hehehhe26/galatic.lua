@@ -1,4 +1,4 @@
--- FastWare - Premium Edition (FIXED CARCASS TP)
+-- FastWare - Premium Edition (with AUTO FARM + 3.12s E Hold)
 local player = game.Players.LocalPlayer
 local workspace = game:GetService("Workspace")
 local userInputService = game:GetService("UserInputService")
@@ -8,6 +8,7 @@ local replicatedStorage = game:GetService("ReplicatedStorage")
 local coreGui = game:GetService("CoreGui")
 local starterGui = game:GetService("StarterGui")
 local tweenService = game:GetService("TweenService")
+local virtualInput = game:GetService("VirtualInputManager")
 
 -- Main GUI
 local gui = Instance.new("ScreenGui")
@@ -19,7 +20,7 @@ gui.DisplayOrder = 999
 
 -- Main container
 local main = Instance.new("Frame")
-main.Size = UDim2.new(0, 420, 0, 550)
+main.Size = UDim2.new(0, 420, 0, 600)
 main.Position = UDim2.new(0, 20, 0, 20)
 main.BackgroundColor3 = Color3.fromRGB(8, 8, 12)
 main.BorderSizePixel = 0
@@ -96,7 +97,7 @@ title.Parent = header
 local version = Instance.new("TextLabel")
 version.Size = UDim2.new(0, 200, 0, 18)
 version.Position = UDim2.new(0, 70, 0, 42)
-version.Text = "PREMIUM EDITION v4"
+version.Text = "PREMIUM EDITION v5"
 version.TextColor3 = Color3.fromRGB(150, 150, 180)
 version.BackgroundTransparency = 1
 version.Font = Enum.Font.Gotham
@@ -540,16 +541,17 @@ duoBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- ================ FARM PAGE (FIXED CARCASS POSITION) ================
+-- ================ FARM PAGE (with AUTO FARM) ================
 local farmY = 5
 
--- Farm positions - CARCASS FIXED with your coordinates
+-- Farm positions (YOUR CORRECT COORDINATES)
 local farmSpots = {
-    {name = "CARCASS", pos = Vector3.new(-371, 4.5, -487)},  -- YOUR CORRECT POSITION
+    {name = "CARCASS", pos = Vector3.new(-371, 5, -487)},
     {name = "CHOP MEAT", pos = Vector3.new(-356.14, 4.2, -497.93)},
     {name = "SELL MEAT", pos = Vector3.new(-342.1, 4.5, -509.72)}
 }
 
+-- Manual teleport buttons
 local farmBtns = {}
 for i, spot in ipairs(farmSpots) do
     local btn = createButton(pages[4], "TP TO " .. spot.name, farmY, Color3.fromRGB(40, 40, 55), "📍")
@@ -566,6 +568,110 @@ for _, data in ipairs(farmBtns) do
         end
     end)
 end
+
+-- ================ AUTO FARM FEATURE ================
+local autoFarmActive = false
+local autoFarmLoop = nil
+
+-- Create Auto Farm button
+local autoFarmBtn = createButton(pages[4], "▶️ AUTO FARM (AFK)", farmY, Color3.fromRGB(0, 100, 200), "⚡")
+farmY = farmY + 50
+
+-- Function to simulate holding E
+local function holdE()
+    local held = false
+    
+    -- Method 1: Fire proximity prompts directly
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("ProximityPrompt") then
+            local part = obj.Parent
+            if part and part:IsA("BasePart") then
+                local dist = (part.Position - player.Character.HumanoidRootPart.Position).Magnitude
+                if dist < 25 then
+                    fireproximityprompt(obj, 0)
+                    held = true
+                end
+            end
+        end
+    end
+    
+    -- Method 2: Simulate key press as backup
+    if not held then
+        pcall(function()
+            virtualInput:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+            wait(0.1)
+            virtualInput:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+        end)
+    end
+    
+    return held
+end
+
+autoFarmBtn.MouseButton1Click:Connect(function()
+    autoFarmActive = not autoFarmActive
+    
+    if autoFarmActive then
+        autoFarmBtn.Text = "⏸️ AUTO FARM ACTIVE [3.12s HOLD]"
+        autoFarmBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+        statusText.Text = "⚡ AUTO FARM STARTED - HOLDING E FOR 3.12s"
+        
+        -- Stop any existing loop
+        if autoFarmLoop then
+            autoFarmLoop:Disconnect()
+            autoFarmLoop = nil
+        end
+        
+        -- Start auto farm loop
+        local currentSpot = 1
+        autoFarmLoop = runService.Heartbeat:Connect(function()
+            if not autoFarmActive then
+                if autoFarmLoop then
+                    autoFarmLoop:Disconnect()
+                    autoFarmLoop = nil
+                end
+                return
+            end
+            
+            -- Get current spot
+            local spot = farmSpots[currentSpot]
+            local char = player.Character
+            
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                -- Teleport to spot
+                char.HumanoidRootPart.CFrame = CFrame.new(spot.pos)
+                statusText.Text = "📍 " .. spot.name .. " - HOLDING E (3.12s)"
+                
+                -- Hold E for exactly 3.12 seconds
+                local startTime = tick()
+                while autoFarmActive and (tick() - startTime) < 3.12 do
+                    holdE()
+                    wait(0.1) -- Fire E every 0.1 seconds during hold
+                end
+                
+                -- Move to next spot
+                currentSpot = currentSpot + 1
+                if currentSpot > #farmSpots then
+                    currentSpot = 1
+                end
+                
+                -- Small delay before next teleport
+                wait(0.2)
+            else
+                wait(1)
+            end
+        end)
+        
+    else
+        autoFarmBtn.Text = "▶️ AUTO FARM (AFK)"
+        autoFarmBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+        statusText.Text = "⚡ AUTO FARM STOPPED"
+        
+        if autoFarmLoop then
+            autoFarmLoop:Disconnect()
+            autoFarmLoop = nil
+        end
+    end
+end)
 
 -- ================ PRIVACY PAGE ================
 local privacyY = 5
@@ -665,5 +771,5 @@ player.CharacterAdded:Connect(function(newChar)
     statusText.Text = "⚡ SYSTEM READY"
 end)
 
-print("✅ FastWare Premium Loaded - Carcass TP Fixed")
+print("✅ FastWare Premium Loaded - Auto Farm with 3.12s E Hold")
 statusText.Text = "⚡ SYSTEM READY"
